@@ -85,8 +85,8 @@ def _load_airport_coords() -> dict[int, dict]:
             a.airport_id,
             a.iata,
             a.name,
-            a.city,
-            a.country,
+            g.city,
+            g.country,
             g.latitude  AS lat,
             g.longitude AS lon
         FROM airport a

@@ -41,7 +41,7 @@ def get_aircraft_types(limit: int = 100) -> list[dict]:
     """
     sql = """
         SELECT DISTINCT
-            at.airplane_type_id,
+            at.type_id,
             at.identifier,
             at.description
         FROM airplane_type at
@@ -67,14 +67,14 @@ def get_aircraft_info(aircraft_type_identifier: str) -> dict | None:
     """
     sql = """
         SELECT
-            at.airplane_type_id,
+            at.type_id,
             at.identifier,
             at.description,
             COUNT(a.airplane_id) AS fleet_count
         FROM airplane_type at
-        LEFT JOIN airplane a ON a.airplane_type_id = at.airplane_type_id
+        LEFT JOIN airplane a ON a.type_id = at.type_id
         WHERE at.identifier = %s OR at.description LIKE %s
-        GROUP BY at.airplane_type_id, at.identifier, at.description
+        GROUP BY at.type_id, at.identifier, at.description
         LIMIT 1
     """
     try:
