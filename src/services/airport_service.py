@@ -28,8 +28,8 @@ def search_airports(query: str, limit: int = 20) -> list[dict]:
             a.iata,
             a.icao,
             a.name,
-            a.city,
-            a.country,
+            g.city,
+            g.country,
             g.latitude,
             g.longitude
         FROM airport a
@@ -37,7 +37,7 @@ def search_airports(query: str, limit: int = 20) -> list[dict]:
         WHERE
             a.iata LIKE %s
             OR a.name LIKE %s
-            OR a.city LIKE %s
+            OR g.city LIKE %s
             OR a.icao LIKE %s
         ORDER BY
             CASE WHEN a.iata = %s THEN 0
@@ -69,8 +69,8 @@ def get_airport_by_iata(iata: str) -> dict | None:
             a.iata,
             a.icao,
             a.name,
-            a.city,
-            a.country,
+            g.city,
+            g.country,
             g.latitude,
             g.longitude
         FROM airport a
@@ -95,8 +95,8 @@ def get_airport_by_id(airport_id: int) -> dict | None:
             a.iata,
             a.icao,
             a.name,
-            a.city,
-            a.country,
+            g.city,
+            g.country,
             g.latitude,
             g.longitude
         FROM airport a
@@ -123,8 +123,8 @@ def list_all_airports(limit: int = 2000) -> list[dict]:
             a.iata,
             a.icao,
             a.name,
-            a.city,
-            a.country,
+            g.city,
+            g.country,
             g.latitude,
             g.longitude
         FROM airport a
@@ -254,65 +254,32 @@ def get_hourly_activity(airport_id: int) -> list[dict]:
 def get_airport_weather(airport_id: int, limit: int = 10) -> list[dict]:
     """
     Return historical weather observations for an airport if available.
-    Data is from the airportdb weatherdata table (historical, not forecast).
+    In the airportdb dataset, weatherdata.station maps to airport_id (stations 1-4 only).
+    Data is historical (June 2015), not a forecast.
     """
     sql = """
         SELECT
-            w.weather_id,
             w.station,
-            w.date,
-            w.min_temperature,
-            w.max_temperature,
-            w.mean_temperature,
-            w.mean_visibility,
-            w.mean_wind_speed,
-            w.max_gust_speed,
-            w.precipitation,
-            w.cloud_cover,
-            w.events
+            w.log_date AS date,
+            w.time,
+            w.temp AS mean_temperature,
+            w.humidity,
+            w.airpressure,
+            w.wind AS mean_wind_speed,
+            w.winddirection,
+            w.weather AS events
         FROM weatherdata w
-        WHERE w.airport_id = %s
-        ORDER BY w.date DESC
+        WHERE w.station = %s
+        ORDER BY w.log_date DESC, w.time DESC
         LIMIT %s
     """
-    # Try direct airport_id link first
     try:
         with db_cursor() as cursor:
             cursor.execute(sql, (airport_id, limit))
             rows = cursor.fetchall()
-        if rows:
-            return _clean_weather_rows(rows)
-    except Exception as e:
-        logger.warning("get_airport_weather direct link error: %s", e)
-
-    # Fallback: try linking via station ~ iata
-    sql_fallback = """
-        SELECT
-            w.weather_id,
-            w.station,
-            w.date,
-            w.min_temperature,
-            w.max_temperature,
-            w.mean_temperature,
-            w.mean_visibility,
-            w.mean_wind_speed,
-            w.max_gust_speed,
-            w.precipitation,
-            w.cloud_cover,
-            w.events
-        FROM weatherdata w
-        INNER JOIN airport a ON w.station = a.iata
-        WHERE a.airport_id = %s
-        ORDER BY w.date DESC
-        LIMIT %s
-    """
-    try:
-        with db_cursor() as cursor:
-            cursor.execute(sql_fallback, (airport_id, limit))
-            rows = cursor.fetchall()
         return _clean_weather_rows(rows)
     except Exception as e:
-        logger.warning("get_airport_weather fallback error: %s", e)
+        logger.warning("get_airport_weather error: %s", e)
         return []
 
 

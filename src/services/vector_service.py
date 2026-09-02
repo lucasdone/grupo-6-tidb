@@ -217,11 +217,12 @@ def find_similar_airports(
             ap.iata,
             ap.profile_text,
             a.name,
-            a.city,
-            a.country,
+            g.city,
+            g.country,
             VEC_COSINE_DISTANCE(ap.embedding, %s) AS cosine_distance
         FROM airport_profiles ap
         INNER JOIN airport a ON ap.airport_id = a.airport_id
+        LEFT JOIN airport_geo g ON a.airport_id = g.airport_id
         WHERE ap.airport_id NOT IN ({placeholders})
           AND ap.embedding IS NOT NULL
         ORDER BY cosine_distance ASC
@@ -290,11 +291,12 @@ def find_similar_airports_by_query(
             ap.iata,
             ap.profile_text,
             a.name,
-            a.city,
-            a.country,
+            g.city,
+            g.country,
             VEC_COSINE_DISTANCE(ap.embedding, %s) AS cosine_distance
         FROM airport_profiles ap
         INNER JOIN airport a ON ap.airport_id = a.airport_id
+        LEFT JOIN airport_geo g ON a.airport_id = g.airport_id
         WHERE ap.embedding IS NOT NULL
         ORDER BY cosine_distance ASC
         LIMIT %s
